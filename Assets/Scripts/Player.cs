@@ -35,7 +35,6 @@ public class Player : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Space) && isJumping == false)
         {
             isJumping = true;
-            animator.SetBool("Running", false);
             animator.SetBool("Jump", true);
             rb.velocity = new Vector2(rb.velocity.x, jumpForce);
         }
@@ -54,10 +53,6 @@ public class Player : MonoBehaviour
             animator.SetBool("Running", false);
         }
 
-        if (isJumping == true)
-        {
-            animator.SetBool("Running", false);
-        }
         if (isJumping == false)
         {
             animator.SetBool("Jump", false);
