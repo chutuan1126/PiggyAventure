@@ -22,7 +22,8 @@ public class BoxSensor : MonoBehaviour
 
     void OnTriggerEnter2D(Collider2D other)
     {
-        ColCount++;
+        if (other.gameObject.transform.name != "CineConfiner")
+            ColCount++;
     }
 
     void OnTriggerExit2D(Collider2D other)

@@ -33,13 +33,14 @@ public class Player : MonoBehaviour
     public int damage;
 
     private bool isDeath;
-
+    public PlayerHealth playerHealth;
 
     // Use this for initialization
     void Start()
     {
         animator = GetComponent<Animator>();
         body2d = GetComponent<Rigidbody2D>();
+        playerHealth = transform.GetComponent<PlayerHealth>();
         groundSensor = transform.Find("GroundSensor").GetComponent<BoxSensor>();
         wallSensorR1 = transform.Find("WallSensor_R1").GetComponent<BoxSensor>();
         wallSensorR2 = transform.Find("WallSensor_R2").GetComponent<BoxSensor>();
@@ -55,14 +56,6 @@ public class Player : MonoBehaviour
             // Increase timer that controls attack combo
             timeSinceAttack += Time.deltaTime;
 
-            // Increase timer that checks roll duration
-            if (rolling)
-                rollCurrentTime += Time.deltaTime;
-
-            // Disable rolling if timer extends duration
-            if (rollCurrentTime > rollDuration)
-                rolling = false;
-
             //Check if character just landed on the ground
             if (!grounded && groundSensor.State())
             {
@@ -77,113 +70,106 @@ public class Player : MonoBehaviour
                 animator.SetBool("Grounded", grounded);
             }
 
-            // -- Handle input and movement --
-            float inputX = Input.GetAxis("Horizontal");
-
-            // Swap direction of sprite depending on walk direction
-            if (inputX > 0)
-            {
-                GetComponent<SpriteRenderer>().flipX = false;
-                facingDirection = 1;
-            }
-
-            else if (inputX < 0)
-            {
-                GetComponent<SpriteRenderer>().flipX = true;
-                facingDirection = -1;
-            }
-
-            // Move
-            if (!rolling)
-                body2d.velocity = new Vector2(inputX * speed, body2d.velocity.y);
-
-            //Set AirSpeed in animator
-            animator.SetFloat("AirSpeedY", body2d.velocity.y);
-
-            // -- Handle Animations --
             //Wall Slide
             isWallSliding = (wallSensorR1.State() && wallSensorR2.State()) || (wallSensorL1.State() && wallSensorL2.State());
-            //if (isWallSliding) AE_SlideDust();
             animator.SetBool("WallSlide", isWallSliding);
 
-            //Death
-            if (Input.GetKeyDown("e") && !rolling)
-            {
-                animator.SetBool("noBlood", noBlood);
-                animator.SetTrigger("Death");
-            }
-
-            //Hurt
-            if (Input.GetKeyDown("q") && !rolling)
-                animator.SetTrigger("Hurt");
-
-            //Attack
             PlayerAttack();
-            //else if (Input.GetMouseButtonDown(0) && timeSinceAttack > 0.25f && !rolling)
-            //{
-            //    currentAttack++;
-
-            //    // Loop back to one after third attack
-            //    if (currentAttack > 3)
-            //        currentAttack = 1;
-
-            //    // Reset Attack combo if time since last attack is too large
-            //    if (timeSinceAttack > 1.0f)
-            //        currentAttack = 1;
-
-            //    // Call one of three attack animations "Attack1", "Attack2", "Attack3"
-            //    animator.SetTrigger("Attack" + currentAttack);
-
-            //    // Reset timer
-            //    timeSinceAttack = 0.0f;
-            //}
-
-            // Block
-            if (Input.GetMouseButtonDown(1) && !rolling)
-            {
-                animator.SetTrigger("Block");
-                animator.SetBool("IdleBlock", true);
-            }
-
-            else if (Input.GetMouseButtonUp(1))
-                animator.SetBool("IdleBlock", false);
-
-            // Roll
-            else if (Input.GetKeyDown("left shift") && !rolling && !isWallSliding)
-            {
-                rolling = true;
-                animator.SetTrigger("Roll");
-                body2d.velocity = new Vector2(body2d.velocity.x + rollForce, body2d.velocity.y);
-            }
-
-
-            //Jump
-            else if (Input.GetKeyDown("space") && grounded && !rolling)
-            {
-                animator.SetTrigger("Jump");
-                grounded = false;
-                animator.SetBool("Grounded", grounded);
-                body2d.velocity = new Vector2(body2d.velocity.x, jumpForce);
-                groundSensor.Disable(0.2f);
-            }
-
-            //Run
-            else if (Mathf.Abs(inputX) > Mathf.Epsilon)
-            {
-                // Reset timer
-                delayToIdle = 0.05f;
-                animator.SetInteger("AnimState", 1);
-            }
-
-            //Idle
-            else
-            {
-                // Prevents flickering transitions to idle
-                delayToIdle -= Time.deltaTime;
-                if (delayToIdle < 0)
-                    animator.SetInteger("AnimState", 0);
-            }
+            PlayerRoll();
+            PlayerBlock();
+            PlayerJump();
+            PlayerRun();
         }
+    }
+
+    public void PlayerRun()
+    {
+        // -- Handle input and movement --
+        float inputX = Input.GetAxis("Horizontal");
+
+        // Swap direction of sprite depending on walk direction
+        if (inputX > 0)
+        {
+            GetComponent<SpriteRenderer>().flipX = false;
+            facingDirection = 1;
+        }
+
+        if (inputX < 0)
+        {
+            GetComponent<SpriteRenderer>().flipX = true;
+            facingDirection = -1;
+        }
+
+        // Move
+        if (!rolling)
+            body2d.velocity = new Vector2(inputX * speed, body2d.velocity.y);
+
+        //Set AirSpeed in animator
+        animator.SetFloat("AirSpeedY", body2d.velocity.y);
+
+        if (Mathf.Abs(inputX) > Mathf.Epsilon)
+        {
+            // Reset timer
+            delayToIdle = 0.05f;
+            animator.SetInteger("AnimState", 1);
+        }
+        else
+        {
+            // Prevents flickering transitions to idle
+            delayToIdle -= Time.deltaTime;
+            if (delayToIdle < 0)
+                animator.SetInteger("AnimState", 0);
+        }
+    }
+
+    public void PlayerJump()
+    {
+        if (Input.GetKeyDown("space") && grounded && !rolling)
+        {
+            animator.SetTrigger("Jump");
+            grounded = false;
+            animator.SetBool("Grounded", grounded);
+            body2d.velocity = new Vector2(body2d.velocity.x, jumpForce);
+            groundSensor.Disable(0.2f);
+        }
+    }
+
+    public void PlayerBlock()
+    {
+        if (Input.GetMouseButtonDown(1) && !rolling)
+        {
+            animator.SetTrigger("Block");
+            animator.SetBool("IdleBlock", true);
+        }
+
+        if (Input.GetMouseButtonUp(1))
+            animator.SetBool("IdleBlock", false);
+    }
+
+    public void PlayerRoll()
+    {
+        // Increase timer that checks roll duration
+        if (rolling) rollCurrentTime += Time.deltaTime;
+
+        // Disable rolling if timer extends duration
+        if (rollCurrentTime > rollDuration)
+        {
+            rolling = false;
+            playerHealth.SetRollingState(false);
+        }
+
+        if (Input.GetKeyDown("left shift") && !rolling && !isWallSliding)
+        {
+            rolling = true;
+            animator.SetTrigger("Roll");
+            body2d.velocity = new Vector2(body2d.velocity.x + rollForce, body2d.velocity.y);
+            playerHealth.SetRollingState(true);
+        }
+    }
+
+    public void PlayerTriggerHurt()
+    {
+        if (!rolling) animator.SetTrigger("Hurt");
     }
 
     public void PlayerAttack()
@@ -205,7 +191,10 @@ public class Player : MonoBehaviour
             for (int i = 0; i < enemiesToDamage.Length; i++)
             {
                 MonsterHeath enemy = enemiesToDamage[i].GetComponent<MonsterHeath>();
-                if (enemy != null) enemy.TakeDamage(damageRange, isCritical);
+                if (enemy != null)
+                {
+                    enemy.TakeDamage(damageRange, isCritical);
+                }
             }
 
             animator.SetTrigger("Attack" + (currentAttack + 1));

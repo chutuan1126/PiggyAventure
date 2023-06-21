@@ -3,11 +3,10 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
-public class Monster : MonoBehaviour
+public class Monster : MonsterAbstract
 {
     public float speed;
     private float distance;
-    public float distanceAttack;
 
     public GameObject player;
 
@@ -41,10 +40,11 @@ public class Monster : MonoBehaviour
             if (directionX > 0) sprite.flipX = true;
             if (directionX < 0) sprite.flipX = false;
 
-            if (distance >= 1f && distance <= distanceAttack)
+            if (!isDeath && distance >= 1f && MonsterController.Instance.GetIsAttack())
             {
                 animator.SetBool("Running", true);
                 transform.position = Vector2.MoveTowards(transform.position, player.transform.position, speed * Time.deltaTime);
+                timeSinceAttack = 0.0f;
             }
             else
             {

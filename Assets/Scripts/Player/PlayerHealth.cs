@@ -7,6 +7,7 @@ public class PlayerHealth : MonoBehaviour
 {
     public float maxHealth;
     public float currentHealth;
+    private bool isRolling;
 
     public HealthController healthBar;
 
@@ -31,17 +32,27 @@ public class PlayerHealth : MonoBehaviour
         OnDeath.RemoveListener(Death);
     }
 
+    public void SetRollingState(bool value)
+    {
+        this.isRolling = value;
+    }
+
     public void TakeDamage(float damage, bool isCritical)
     {
-        currentHealth -= damage;
-
-        if (currentHealth <= 0)
+        if(!isRolling)
         {
-            currentHealth = 0;
-            OnDeath.Invoke();
-        }
+            player.PlayerTriggerHurt();
+            currentHealth -= damage;
+            
 
-        healthBar.UpdateBar(currentHealth, maxHealth);
+            if (currentHealth <= 0)
+            {
+                currentHealth = 0;
+                OnDeath.Invoke();
+            }
+
+            healthBar.UpdateBar(currentHealth, maxHealth);
+        }
     }
 
     public void Death()
